@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	proccess "github.com/kakacka/message-timer/internal/process"
 	"github.com/spf13/cobra"
 )
@@ -13,6 +15,8 @@ var (
 		Short: "run the program",
 		Long:  `run the program...`,
 		Run: func(cmd *cobra.Command, args []string) {
+			flags.Stdin = os.Stdin
+			flags.Stdout = os.Stdout
 			proccess.Run(flags)
 		},
 	}

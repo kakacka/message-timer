@@ -7,11 +7,17 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/araddon/dateparse"
 )
 
 type Flags struct {
 	Separator string
 	File      string
+
+	TimeFormat string
+	Stdout     *os.File
+	Stdin      *os.File
 }
 
 func Run(flags Flags) {
@@ -32,7 +38,7 @@ func Run(flags Flags) {
 			return
 		}
 	} else {
-		inputReader = os.Stdin
+		inputReader = flags.Stdin
 	}
 	scanner := bufio.NewScanner(inputReader)
 	linenum := 0
@@ -46,7 +52,7 @@ func Run(flags Flags) {
 		}
 		linenum++
 		var stimestamp string
-		var value string
+		var message string
 		if flags.Separator != "" {
 			splitLine := strings.SplitN(line, flags.Separator, 2)
 			if len(splitLine) != 2 {
@@ -55,9 +61,9 @@ func Run(flags Flags) {
 				return
 			}
 			stimestamp = splitLine[0]
-			value = splitLine[1] + "\n"
+			message = splitLine[1] + "\n"
 		}
-		timestamp, errx := formatTimestamp(stimestamp, flags)
+		timestamp, errx := decodeTimestamp(stimestamp, &flags)
 		if errx != nil {
 			fmt.Println(errx)
 			return
@@ -72,13 +78,31 @@ func Run(flags Flags) {
 				//drink cup of tea
 			}
 		}
-		os.Stdout.WriteString(value)
+		flags.Stdout.WriteString(message)
 	}
 	if errx := scanner.Err(); errx != nil {
 		fmt.Println(errx)
 	}
 }
 
-func formatTimestamp(timestamp string, flags Flags) (time.Time, error) {
-	return time.Parse("2006-01-02T15:04:05.999Z", timestamp)
+func decodeTimestamp(timestamp string, flags *Flags) (time.Time, error) {
+	if flags.TimeFormat == "" {
+		if timeFormat, errx := dateparse.ParseFormat(timestamp); errx != nil {
+			return time.Time{}, errx
+
+		} else {
+			flags.TimeFormat = timeFormat
+		}
+	}
+	DecodedTimestamp, errx := time.Parse(flags.TimeFormat, timestamp)
+	if errx != nil { //try again incase format changed
+		if timeFormat, errx := dateparse.ParseFormat(timestamp); errx != nil {
+			return time.Time{}, errx
+
+		} else {
+			flags.TimeFormat = timeFormat
+		}
+		DecodedTimestamp, errx = time.Parse(flags.TimeFormat, timestamp)
+	}
+	return DecodedTimestamp, errx
 }
