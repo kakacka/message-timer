@@ -2,13 +2,13 @@ package proccess
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/araddon/dateparse"
+	log "github.com/sirupsen/logrus"
 )
 
 type Flags struct {
@@ -23,19 +23,17 @@ type Flags struct {
 func Run(flags Flags) {
 	fi, err := os.Stdin.Stat()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	if fi.Mode()&os.ModeNamedPipe == 0 && flags.File == "" {
-		fmt.Println("Missing input data")
-		return
+		log.Fatal("No data piped or file specified")
 	}
 
 	var inputReader io.Reader
 	if flags.File != "" {
 		inputReader, err = os.Open(flags.File)
 		if err != nil {
-			fmt.Println(err)
-			return
+			log.Fatal(err)
 		}
 	} else {
 		inputReader = flags.Stdin
@@ -47,8 +45,7 @@ func Run(flags Flags) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if errx := scanner.Err(); errx != nil {
-			fmt.Println(errx)
-			return
+			log.Fatal(errx)
 		}
 		linenum++
 		var stimestamp string
@@ -56,17 +53,14 @@ func Run(flags Flags) {
 		if flags.Separator != "" {
 			splitLine := strings.SplitN(line, flags.Separator, 2)
 			if len(splitLine) != 2 {
-				fmt.Printf("Couldn't separate on line %d\n", linenum)
-				fmt.Print(line)
-				return
+				log.Fatalf("Couldn't separate on line %d\n%s\n", linenum)
 			}
 			stimestamp = splitLine[0]
 			message = splitLine[1] + "\n"
 		}
 		timestamp, errx := decodeTimestamp(stimestamp, &flags)
 		if errx != nil {
-			fmt.Println(errx)
-			return
+			log.Fatal(errx)
 		}
 		if deltaSet == false {
 			timeDelta = time.Now().Sub(timestamp)
@@ -75,13 +69,13 @@ func Run(flags Flags) {
 		} else {
 			nextTime := timestamp.Add(timeDelta)
 			for nextTime.After(time.Now()) {
-				//drink cup of tea
+				//waiting
 			}
 		}
 		flags.Stdout.WriteString(message)
 	}
 	if errx := scanner.Err(); errx != nil {
-		fmt.Println(errx)
+		log.Error(errx)
 	}
 }
 

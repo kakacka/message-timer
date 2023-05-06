@@ -8,16 +8,16 @@ import (
 )
 
 var (
-	flags proccess.Flags
+	runFlags proccess.Flags
 
 	runCmd = &cobra.Command{
 		Use:   "run",
-		Short: "run the program",
-		Long:  `run the program...`,
+		Short: "Runs the program",
+		Long:  "Runs the program",
 		Run: func(cmd *cobra.Command, args []string) {
-			flags.Stdin = os.Stdin
-			flags.Stdout = os.Stdout
-			proccess.Run(flags)
+			runFlags.Stdin = os.Stdin
+			runFlags.Stdout = os.Stdout
+			proccess.Run(runFlags)
 		},
 	}
 )
@@ -25,6 +25,7 @@ var (
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	runCmd.Flags().StringVarP(&flags.Separator, "separator", "s", ";", "Timestamp and message separator. Separates on first occurrence.")
-	runCmd.Flags().StringVarP(&flags.File, "file", "f", "", "Input file")
+	runCmd.Flags().StringVarP(&runFlags.Separator, "separator", "s", ";", "Timestamp and message separator. Separates on first occurrence for each line.")
+	runCmd.Flags().StringVarP(&runFlags.File, "file", "f", "", "Set input file")
+	runCmd.Flags().StringVarP(&runFlags.TimeFormat, "layout", "l", "", "Set specific datetime layout for decoding timestamps. Used in go pkg time.Parse. If none is specified, uses dateparse library to auto-detect format.")
 }
